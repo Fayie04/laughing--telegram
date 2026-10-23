@@ -4,7 +4,7 @@ A self-contained web app with full-format **IELTS Academic** practice tests. No 
 
 ## What's included
 
-Two complete practice tests. Each has all four modules:
+Three complete practice tests. Each has all four modules:
 
 | Module | Format | Marking |
 |---|---|---|
