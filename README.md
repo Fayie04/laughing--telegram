@@ -2,6 +2,8 @@
 
 A self-contained web app with full-format **IELTS Academic** practice tests. No build step or server is needed: open `index.html` in a browser.
 
+Hosted copy: https://claude.ai/artifact/GVWz8i22x3iQ9KCwg61Jmh (private to the owner unless shared).
+
 ## What's included
 
 Three complete practice tests. Each has all four modules:

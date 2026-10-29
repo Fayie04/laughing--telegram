@@ -59,6 +59,15 @@
     return q.answer;
   }
 
+  // Two-step confirm inside the page: first click arms the button, second click runs the action.
+  function confirmClick(btn, question, action) {
+    if (btn.dataset.armed) { action(); return; }
+    const original = btn.textContent;
+    btn.dataset.armed = "1";
+    btn.textContent = question + " Click again to confirm";
+    setTimeout(() => { if (document.body.contains(btn)) { delete btn.dataset.armed; btn.textContent = original; } }, 4000);
+  }
+
   // ---------- timer ----------
   let timerHandle = null;
   function stopTimer() { clearInterval(timerHandle); timerHandle = null; timerEl.hidden = true; }
@@ -158,8 +167,8 @@
         <ul class="modules">${["listening", "reading", "writing", "speaking"].map(row).join("")}</ul>
         <p>${ov != null ? `Overall: <strong>Band ${ov}</strong>` : '<span class="muted">Complete all four modules for an overall band.</span>'}</p>
         <div class="row">
-          <a class="btn primary" href="#/${t.id}/listening">Start</a>
-          <a class="btn" href="#/${t.id}/results">Results</a>
+          <a class="btn primary" href="#${t.id}-listening">Start</a>
+          <a class="btn" href="#${t.id}-results">Results</a>
           <button data-reset="${t.id}">Reset</button>
         </div>
       </div>`;
@@ -177,19 +186,19 @@
       </div>
       <div class="grid">${cards}</div>`;
     app.querySelectorAll("[data-reset]").forEach(b => b.addEventListener("click", () => {
-      if (confirm("Clear all answers and scores for this test?")) { delete store[b.dataset.reset]; save(); renderHome(); }
+      confirmClick(b, "Clear all answers?", () => { delete store[b.dataset.reset]; save(); renderHome(); });
     }));
   }
 
   function renderNav(test, current) {
     nav.hidden = false;
-    nav.innerHTML = MODULES.map(m => `<a href="#/${test.id}/${m}" class="${m === current ? "active" : ""}">${LABELS[m]}</a>`).join("");
+    nav.innerHTML = MODULES.map(m => `<a href="#${test.id}-${m}" class="${m === current ? "active" : ""}">${LABELS[m]}</a>`).join("");
   }
 
   function nextLink(test, mod) {
     const i = MODULES.indexOf(mod);
     const next = MODULES[i + 1];
-    return next ? `<a class="btn primary" href="#/${test.id}/${next}">Continue to ${LABELS[next]} →</a>` : "";
+    return next ? `<a class="btn primary" href="#${test.id}-${next}">Continue to ${LABELS[next]} →</a>` : "";
   }
 
   // ----- Listening -----
@@ -307,8 +316,7 @@
       const submit = app.querySelector("#submit");
       if (submit) submit.addEventListener("click", () => {
         const unanswered = all.filter(q => !s.answers[q.id]).length;
-        if (unanswered && !confirm(`${unanswered} question(s) unanswered. Submit anyway?`)) return;
-        doSubmit();
+        if (unanswered) confirmClick(submit, `${unanswered} unanswered.`, doSubmit); else doSubmit();
       });
     };
     const setActive = i => { active = i; s.activePassage = i; save(); draw(); window.scrollTo(0, 0); };
@@ -420,7 +428,7 @@
       renderWriting(test);
     }));
     const submit = app.querySelector("#submit");
-    if (submit) submit.addEventListener("click", () => { if (confirm("Finish the Writing test?")) doSubmit(); });
+    if (submit) submit.addEventListener("click", () => confirmClick(submit, "Finish Writing?", doSubmit));
   }
 
   // ----- Speaking -----
@@ -525,7 +533,7 @@
         btn.textContent = "■ Stop recording";
         status.textContent = "Recording…";
       } catch (err) {
-        status.textContent = "Microphone unavailable: " + err.message;
+        status.textContent = "Recording isn't available here. Answer aloud anyway, or open the app from a local copy to record.";
       }
     }));
   }
@@ -574,7 +582,7 @@
         ${tile("speaking", "self-assessed")}
       </div>
       ${tips.length ? `<div class="panel" style="margin-top:16px"><h2 style="margin-top:0">Tips for improvement</h2><ul>${tips.map(t => `<li>${t}</li>`).join("")}</ul></div>` : ""}
-      <div class="row" style="margin-top:16px"><a class="btn" href="#/">← All tests</a></div>`;
+      <div class="row" style="margin-top:16px"><a class="btn" href="#home">← All tests</a></div>`;
   }
 
   // ---------- router ----------
@@ -583,7 +591,7 @@
     stopSpeech();
     clearInterval(partTimer);
     if (recorder && recorder.state === "recording") recorder.stop();
-    const [, testId, mod] = location.hash.replace(/^#/, "").split("/");
+    const [testId, mod] = location.hash.replace(/^#\/?/, "").split(/[-/]/);
     const test = TESTS.find(t => t.id === testId);
     if (!test) return renderHome();
     const m = MODULES.includes(mod) ? mod : "listening";
